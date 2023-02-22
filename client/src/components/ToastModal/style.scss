@@ -1,0 +1,77 @@
+.ErrorAlert {
+  .modal-header {
+    background-color: #ec5353;
+    justify-content: center;
+    svg {
+      font-size: 60px;
+      color: #fff;
+    }
+  }
+  h4 {
+    color: #3d445b;
+    font-size: 30px;
+    font-weight: bold;
+  }
+  p {
+    color: #3d445b;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  button.Cancel {
+    background-color: #ec5353;
+    color: #fff;
+    border: none;
+  }
+}
+
+.SuccessAlert {
+  .modal-header {
+    background-color: #22ae6f;
+    justify-content: center;
+    svg {
+      font-size: 60px;
+      color: #fff;
+    }
+  }
+  h4 {
+    color: #3d445b;
+    font-size: 30px;
+    font-weight: bold;
+  }
+  p {
+    color: #3d445b;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  button.Cancel {
+    background-color: #22ae6f;
+    color: #fff;
+    border: none;
+  }
+}
+
+.InfoAlert {
+  .modal-header {
+    background-color: #467fd0;
+    justify-content: center;
+    svg {
+      font-size: 60px;
+      color: #fff;
+    }
+  }
+  h4 {
+    color: #3d445b;
+    font-size: 30px;
+    font-weight: bold;
+  }
+  p {
+    color: #3d445b;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  button.Cancel {
+    background-color: #467fd0;
+    color: #fff;
+    border: none;
+  }
+}

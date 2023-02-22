@@ -1,0 +1,27 @@
+.left-login-item {
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+    padding: 40px;
+  }
+  &--wrapper {
+    height: 100vh;
+    @media (max-width: 768px) {
+      height: auto;
+    }
+  }
+}
+
+.right-login-item {
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+    padding: 40px;
+  }
+  &--wrapper {
+    height: 100vh;
+    @media (max-width: 768px) {
+      height: auto;
+    }
+  }
+}
