@@ -14,100 +14,208 @@ const {
   responseWithData,
 } = require("../responses/response");
 const { session } = require("passport");
+const cloudinary = require("cloudinary");
+const multer = require("multer");
+const fs = require("fs");
 
 const router = express.Router();
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
+});
+
+// SET STORAGE
+const storage = multer.diskStorage({
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  },
+});
+
+// file type validation
+const fileType = (req, file, cb) => {
+  if (
+    file.mimetype.startsWith("image/jpeg") ||
+    file.mimetype.startsWith("image/png")
+  ) {
+    cb(null, true);
+  } else {
+    cb(new Error("File type should be pdf/jpeg/png and 25MB only!"));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter: fileType,
+  limits: { fileSize: 3200000 },
+});
+const uploader = async (path) =>
+  await cloudinary.uploader.upload(path, "memories");
 
 router.post(
   "/createPost",
   passport.authenticate("jwt", { session: false }),
+  upload.single("file"),
   async (req, res) => {
     let id = req.user._id;
 
-    const { title, message, selectedFile, creator, tags } = req.body;
-
-    if (!creator) {
-      return errorResponse(
-        res,
-        ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Creator"),
-        400
-      );
-    } else if (!title) {
-      return errorResponse(
-        res,
-        ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Title"),
-        400
-      );
-    } else if (!message) {
-      return errorResponse(
-        res,
-        ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Message"),
-        400
-      );
-    } else if (!tags) {
-      return errorResponse(
-        res,
-        ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Tags"),
-        400
-      );
-    } else if (!selectedFile) {
-      return errorResponse(
-        res,
-        ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Image-File"),
-        400
-      );
-    } else {
-      try {
-        const postMessage = await PostMessage.create({
-          title,
-          message,
-          selectedFile,
-          creator,
-          tags,
-          user: id,
-        });
-        await postMessage.save();
-
-        await User.findByIdAndUpdate(
-          { _id: id },
-          { $push: { posts: postMessage._id } },
-          { new: true }
-        );
-        return responseWithData(
-          res,
-          true,
-
-          SuccessMessages.POST.POST_CREATED_SUCCESSFULLY,
-          { user: postMessage },
-          200
-        );
-        // res.status(201).json(newPostMessage);
-      } catch (error) {
-        // console.log("Error in create post", error);
-
+    const { title, message, creator, tags } = req.body;
+    let url;
+    const files = req.file;
+    try {
+      if (!creator) {
         return errorResponse(
           res,
-          ErrorMessages.GENERIC_ERROR.OPERATION_FAIL(
-            "Error For Create Post",
-            error?.message
-          ),
-          500
+          ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Creator"),
+          400
         );
+      } else if (!title) {
+        return errorResponse(
+          res,
+          ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Title"),
+          400
+        );
+      } else if (!message) {
+        return errorResponse(
+          res,
+          ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Message"),
+          400
+        );
+      } else if (!tags) {
+        return errorResponse(
+          res,
+          ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Tags"),
+          400
+        );
+      } else if (!files) {
+        return errorResponse(
+          res,
+          ErrorMessages.COMMON_VALIDATION_ERROR.MISSING("Image-File"),
+          400
+        );
+      } else {
+        if (files) {
+          const { path } = files;
+          const newPath = await uploader(path);
+          url = {
+            public_id: newPath.public_id,
+            asset_id: newPath.asset_id,
+            version_id: newPath.version_id,
+            width: newPath.width,
+            height: newPath.height,
+            format: newPath.format,
+            original_filename: newPath.original_filename,
+            url: newPath.url,
+          };
+          // console.log("urls::", url);
+          fs.unlinkSync(path);
+
+          try {
+            const postMessage = await PostMessage.create({
+              title: title,
+              message: message,
+              selectedFile: url,
+              creator: creator,
+              tags: tags,
+              user: id,
+            });
+            // console.log("postmessages::", postMessage);
+            await postMessage.save();
+
+            await User.findByIdAndUpdate(
+              { _id: id },
+              { $push: { posts: postMessage._id } },
+              { new: true }
+            );
+            return responseWithData(
+              res,
+              true,
+
+              SuccessMessages.POST.POST_CREATED_SUCCESSFULLY,
+              { user: postMessage },
+              200
+            );
+            // res.status(201).json(newPostMessage);
+          } catch (error) {
+            console.log("Error in create post", error);
+
+            return errorResponse(
+              res,
+              ErrorMessages.GENERIC_ERROR.OPERATION_FAIL(
+                "Error For Create Post",
+                error?.message
+              ),
+              500
+            );
+          }
+        } else {
+          return errorResponse(res, "Please attach file", 400);
+        }
       }
+    } catch (error) {
+      console.log("error===========", error);
+      return errorResponse(
+        res,
+        ErrorMessages.GENERIC_ERROR.OPERATION_FAIL(
+          "Failed to register",
+          error?.message
+        ),
+        400
+      );
     }
+    // console.log("file::", files);
   }
 );
 
 router.patch(
   "/updatePost/:id",
   passport.authenticate("jwt", { session: false }),
+  upload.single("file"),
   async (req, res) => {
     const { id } = req.params;
     // console.log("update_ID::", id);
-    const { title, message, creator, selectedFile, tags } = req.body;
+    const { title, message, creator, tags } = req.body;
     const isPost = await PostMessage.findOne({ _id: id });
-
+    const post_public_id = isPost?.selectedFile.map((post) => {
+      return post.public_id;
+    });
+    let url;
+    const files = req.file;
+    // console.log("postdata::", postdata);
     if (!isPost) {
       return errorResponse(res, ErrorMessages.AUTH.INVALID_ID(id), 404);
+    }
+
+    if (files) {
+      const delCloud = await cloudinary.v2.uploader.destroy(
+        post_public_id,
+        (error, result) => {
+          console.log("result update---", result);
+
+          if (error) {
+            console.log("error delete file on cloud while update---", error);
+            return errorResponse(res, "error while deleting file!", 400);
+          }
+        }
+      );
+      if (delCloud.result === "not found") {
+        return errorResponse(res, "File not found/Already deleted", 400);
+      }
+      const { path } = files;
+      const newPath = await uploader(path);
+      url = {
+        public_id: newPath.public_id,
+        asset_id: newPath.asset_id,
+        version_id: newPath.version_id,
+        width: newPath.width,
+        height: newPath.height,
+        format: newPath.format,
+        original_filename: newPath.original_filename,
+        url: newPath.url,
+      };
+      // console.log("urls::", url);
+      fs.unlinkSync(path);
     }
 
     // const updatedPost = {
@@ -128,7 +236,7 @@ router.patch(
             creator: creator,
             message: message,
             tags: tags,
-            selectedFile: selectedFile,
+            selectedFile: url,
           },
         },
         { new: true }
@@ -159,8 +267,25 @@ router.delete(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     const { post_id } = req.params;
+    const { public_id } = req.body;
     let id = req.user._id;
     const isPost = await PostMessage.findById(post_id);
+
+    const delCloud = await cloudinary.v2.uploader.destroy(
+      public_id,
+      (error, result) => {
+        console.log("result---", result);
+
+        if (error) {
+          console.log("error delete file on cloud---", error);
+          return errorResponse(res, "error while deleting file!", 400);
+        }
+      }
+    );
+
+    if (delCloud.result === "not found") {
+      return errorResponse(res, "File not found/Already deleted", 400);
+    }
 
     if (!isPost)
       return errorResponse(res, ErrorMessages.AUTH.INVALID_ID(id), 404);
