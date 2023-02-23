@@ -15,7 +15,7 @@ import {
   LIKE_POST_FAILURE_RESPONSE,
   LIKE_POST_SUCCESS_RESPONSE,
 } from "../constants/actionTypes";
-import { apiClient } from "../utils/request";
+import { apiClient, apiClientPost } from "../utils/request";
 
 // import * as api from "../api/index.js";
 
@@ -42,15 +42,21 @@ export const getPosts = () => async (dispatch) => {
   }
 };
 
-export const createPost = (postData) => async (dispatch) => {
+export const createPost = (postsData, postData) => async (dispatch) => {
   try {
     dispatch({
       type: CREATE_POST_API_REQUEST,
       payload: {},
     });
 
-    const { data } = await apiClient
-      .post("/posts/createPost", postData)
+    postsData.append("file", postData.selectedFile);
+    postsData.append("creator", postData.creator);
+    postsData.append("message", postData.message);
+    postsData.append("tags", postData.tags);
+    postsData.append("title", postData.title);
+
+    const { data } = await apiClientPost
+      .post("/posts/createPost", postsData)
       .then((response) => {
         return response;
       });
@@ -65,15 +71,30 @@ export const createPost = (postData) => async (dispatch) => {
   }
 };
 
-export const updatePost = (id, post) => async (dispatch) => {
+export const updatePost = (id, postsData, postData) => async (dispatch) => {
   try {
     dispatch({
       type: UPDATE_POST_API_REQUEST,
       payload: {},
     });
+    if (postData.selectedFile) {
+      postsData.append("file", postData.selectedFile);
+    }
+    if (postData.creator) {
+      postsData.append("creator", postData.creator);
+    }
+    if (postData.message) {
+      postsData.append("message", postData.message);
+    }
+    if (postData.tags) {
+      postsData.append("tags", postData.tags);
+    }
+    if (postData.title) {
+      postsData.append("title", postData.title);
+    }
     // console.log("id::", id);
     const { data } = await apiClient
-      .patch(`/posts/updatePost/${id}`, post)
+      .patch(`/posts/updatePost/${id}`, postsData)
       .then((response) => {
         return response;
       });
@@ -111,15 +132,18 @@ export const likePost = (id) => async (dispatch) => {
   }
 };
 
-export const deletePost = (id) => async (dispatch) => {
+export const deletePost = (id, post) => async (dispatch) => {
   try {
     dispatch({
       type: DELETE_POST_API_REQUEST,
       payload: {},
     });
+    console.log("publicid::", post.selectedFile.public_id);
+    const public_id = post.selectedFile.public_id;
     const { data } = await apiClient
-      .delete(`/posts/deletePost/${id}`)
+      .delete(`/posts/deletePost/${id}`, public_id)
       .then((response) => {
+        console.log("response:::", response);
         return response;
       });
     // console.log("data dele::", data.data.user.posts);

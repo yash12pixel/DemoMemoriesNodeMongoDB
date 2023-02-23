@@ -9,9 +9,9 @@ export const apiClient = axios.create({
 });
 
 export const apiClientPost = axios.create({
-  baseURL: "http://localhost:5000/posts",
+  baseURL: "http://localhost:5000/",
   headers: {
-    "Content-type": "application/json",
     Authorization: ` Bearer ${localStorage.getItem("token")}`,
+    "Content-type": "application/json",
   },
 });
