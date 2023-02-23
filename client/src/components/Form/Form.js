@@ -108,7 +108,7 @@ const Form = ({ currentId, setCurrentId }) => {
         const formData = new FormData();
         // console.log(("postsData:", formData));
         dispatch(createPost(formData, postData));
-        return setValidatedObject({
+        setValidatedObject({
           ...validatedObject,
           isWarning: false,
           message: "",
