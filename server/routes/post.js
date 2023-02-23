@@ -63,6 +63,8 @@ router.post(
     const { title, message, creator, tags } = req.body;
     let url;
     const files = req.file;
+    // console.log("file", files);
+    // console.log("boddyy::", req.body);
     try {
       if (!creator) {
         return errorResponse(
@@ -177,17 +179,16 @@ router.patch(
     // console.log("update_ID::", id);
     const { title, message, creator, tags } = req.body;
     const isPost = await PostMessage.findOne({ _id: id });
-    const post_public_id = isPost?.selectedFile.map((post) => {
-      return post.public_id;
-    });
     let url;
     const files = req.file;
-    // console.log("postdata::", postdata);
+    console.log("files:::", files);
+    console.log("body:::", req.body);
     if (!isPost) {
       return errorResponse(res, ErrorMessages.AUTH.INVALID_ID(id), 404);
     }
 
     if (files) {
+      const post_public_id = isPost?.selectedFile.public_id;
       const delCloud = await cloudinary.v2.uploader.destroy(
         post_public_id,
         (error, result) => {
@@ -216,6 +217,71 @@ router.patch(
       };
       // console.log("urls::", url);
       fs.unlinkSync(path);
+      try {
+        const updatedPost = await PostMessage.findByIdAndUpdate(
+          { _id: id },
+          {
+            $set: {
+              title: title,
+              creator: creator,
+              message: message,
+              tags: tags,
+              selectedFile: url,
+            },
+          },
+          { new: true }
+        );
+
+        return responseWithData(
+          res,
+          true,
+          SuccessMessages.POST.POST_UPDATED_SUCCESSFULLY,
+          { post: updatedPost },
+          200
+        );
+      } catch (error) {
+        return errorResponse(
+          res,
+          ErrorMessages.GENERIC_ERROR.OPERATION_FAIL(
+            "Post Update",
+            error?.message
+          ),
+          500
+        );
+      }
+    } else {
+      try {
+        const updatedPost = await PostMessage.findByIdAndUpdate(
+          { _id: id },
+          {
+            $set: {
+              title: title,
+              creator: creator,
+              message: message,
+              tags: tags,
+              selectedFile: isPost.selectedFile,
+            },
+          },
+          { new: true }
+        );
+
+        return responseWithData(
+          res,
+          true,
+          SuccessMessages.POST.POST_UPDATED_SUCCESSFULLY,
+          { post: updatedPost },
+          200
+        );
+      } catch (error) {
+        return errorResponse(
+          res,
+          ErrorMessages.GENERIC_ERROR.OPERATION_FAIL(
+            "Post Update",
+            error?.message
+          ),
+          500
+        );
+      }
     }
 
     // const updatedPost = {
@@ -227,38 +293,6 @@ router.patch(
     //   selectedFile,
     //   _id: id,
     // };
-    try {
-      const updatedPost = await PostMessage.findByIdAndUpdate(
-        { _id: id },
-        {
-          $set: {
-            title: title,
-            creator: creator,
-            message: message,
-            tags: tags,
-            selectedFile: url,
-          },
-        },
-        { new: true }
-      );
-
-      return responseWithData(
-        res,
-        true,
-        SuccessMessages.POST.POST_UPDATED_SUCCESSFULLY,
-        { post: updatedPost },
-        200
-      );
-    } catch (error) {
-      return errorResponse(
-        res,
-        ErrorMessages.GENERIC_ERROR.OPERATION_FAIL(
-          "Post Update",
-          error?.message
-        ),
-        500
-      );
-    }
   }
 );
 
@@ -272,7 +306,7 @@ router.delete(
     const isPost = await PostMessage.findById(post_id);
 
     const delCloud = await cloudinary.v2.uploader.destroy(
-      public_id,
+      isPost.selectedFile.public_id,
       (error, result) => {
         console.log("result---", result);
 

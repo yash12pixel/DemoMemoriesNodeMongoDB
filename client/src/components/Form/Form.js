@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TextField, Button, Typography, Paper } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import FileBase from "react-file-base64";
+// import FileBase from "react-file-base64";
 
 import useStyles from "./styles";
 import { createPost, updatePost } from "../../actions/posts";
@@ -18,6 +18,8 @@ const Form = ({ currentId, setCurrentId }) => {
     isWarning: false,
     message: "",
   });
+
+  console.log("files::", postData.selectedFile);
   const post = useSelector((state) =>
     currentId
       ? state.posts.posts.find((message) => message._id === currentId)
@@ -40,6 +42,12 @@ const Form = ({ currentId, setCurrentId }) => {
       tags: "",
       selectedFile: null,
     });
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files) {
+      setPostData({ ...postData, selectedFile: e.target.files[0] });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -97,10 +105,19 @@ const Form = ({ currentId, setCurrentId }) => {
       });
     } else {
       if (currentId === 0) {
-        dispatch(createPost(postData));
+        const formData = new FormData();
+        // console.log(("postsData:", formData));
+        dispatch(createPost(formData, postData));
+        return setValidatedObject({
+          ...validatedObject,
+          isWarning: false,
+          message: "",
+        });
         clear();
       } else {
-        dispatch(updatePost(currentId, postData));
+        const formData = new FormData();
+
+        dispatch(updatePost(currentId, formData, postData));
         clear();
       }
     }
@@ -112,7 +129,8 @@ const Form = ({ currentId, setCurrentId }) => {
         autoComplete="off"
         noValidate
         className={`${classes.root} ${classes.form}`}
-        onSubmit={handleSubmit}>
+        onSubmit={handleSubmit}
+        encType="multipart/form-data">
         {validatedObject.isWarning && (
           <ErrorMessageAlert
             message={validatedObject.message}></ErrorMessageAlert>
@@ -162,13 +180,14 @@ const Form = ({ currentId, setCurrentId }) => {
           }
         />
         <div className={classes.fileInput}>
-          <FileBase
+          {/* <FileBase
             type="file"
             multiple={false}
             onDone={({ base64 }) =>
               setPostData({ ...postData, selectedFile: base64 })
             }
-          />
+          /> */}
+          <input type="file" id="file" onChange={handleFileChange} />
         </div>
         <Button
           disabled={postState.loading}

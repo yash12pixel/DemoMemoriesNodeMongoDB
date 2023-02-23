@@ -20,13 +20,14 @@ const Post = ({ post, setCurrentId }) => {
   const dispatch = useDispatch();
   const classes = useStyles();
   // console.log("post_tagss::", post.tags);
-  // console.log("post::", post);
+  // console.log("post::", post.selectedFile.public_id);
+  // const public_id = post.selectedFile.public_id;
   return (
     <Card className={classes.card}>
       <CardMedia
         className={classes.media}
         image={
-          post.selectedFile ||
+          post?.selectedFile?.url ||
           "https://user-images.githubusercontent.com/194400/49531010-48dad180-f8b1-11e8-8d89-1e61320e1d82.png"
         }
         title={post.title}
@@ -47,7 +48,7 @@ const Post = ({ post, setCurrentId }) => {
       </div>
       <div className={classes.details}>
         <Typography variant="body2" color="textSecondary" component="h2">
-          {post.tags.map((tag) => `#${tag} `)}
+          {post.tags?.map((tag) => `#${tag} `)}
         </Typography>
       </div>
       <Typography
@@ -72,7 +73,7 @@ const Post = ({ post, setCurrentId }) => {
         <Button
           size="small"
           color="primary"
-          onClick={() => dispatch(deletePost(post._id))}>
+          onClick={() => dispatch(deletePost(post._id, post))}>
           <DeleteIcon fontSize="small" /> Delete
         </Button>
       </CardActions>
